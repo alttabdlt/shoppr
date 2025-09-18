@@ -116,6 +116,9 @@ importers:
       '@web3modal/wagmi':
         specifier: ^5.1.11
         version: 5.1.11(5xv53vy6i3twlgguwhm57kjz4e)
+      '@shoppr/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       ai:
         specifier: 5.0.26
         version: 5.0.26(zod@3.25.76)
