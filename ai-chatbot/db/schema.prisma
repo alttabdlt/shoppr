@@ -1,0 +1,9 @@
+// Placeholder Prisma schema for future intent, quote, and execution models.
+// Replace with concrete model definitions as the data model solidifies.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+// TODO: add models for intents, quotes, executions, receipts, and audit trails.

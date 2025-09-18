@@ -1,0 +1,30 @@
+[
+  {
+    "symbol": "ETH",
+    "name": "Ether",
+    "decimals": 18,
+    "chains": ["ethereum", "arbitrum", "base", "optimism", "polygon"],
+    "type": "native"
+  },
+  {
+    "symbol": "WETH",
+    "name": "Wrapped Ether",
+    "decimals": 18,
+    "chains": ["ethereum", "arbitrum", "base", "optimism", "polygon"],
+    "type": "erc20"
+  },
+  {
+    "symbol": "USDC",
+    "name": "USD Coin",
+    "decimals": 6,
+    "chains": ["ethereum", "arbitrum", "base", "optimism", "polygon"],
+    "type": "erc20"
+  },
+  {
+    "symbol": "HYPE",
+    "name": "Project HYPE",
+    "decimals": 18,
+    "chains": ["hyperevm"],
+    "type": "erc20"
+  }
+]

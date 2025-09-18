@@ -1,0 +1,22 @@
+{
+  "native": {
+    "tier": "A",
+    "notes": "Canonical messaging or burn/mint pathway"
+  },
+  "cctp": {
+    "tier": "A",
+    "notes": "Circle Cross-Chain Transfer Protocol"
+  },
+  "lifi": {
+    "tier": "B",
+    "notes": "Aggregator curated routes"
+  },
+  "socket": {
+    "tier": "B",
+    "notes": "Socket/Bungee routes"
+  },
+  "across": {
+    "tier": "A",
+    "notes": "Across fast finality bridge"
+  }
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "ethereum",
+    "chainId": 1,
+    "rpcUrlEnv": "ETHEREUM_RPC_URL",
+    "canonicalUsdc": true,
+    "experimental": false
+  },
+  {
+    "name": "arbitrum",
+    "chainId": 42161,
+    "rpcUrlEnv": "ARBITRUM_RPC_URL",
+    "canonicalUsdc": true,
+    "experimental": false
+  },
+  {
+    "name": "base",
+    "chainId": 8453,
+    "rpcUrlEnv": "BASE_RPC_URL",
+    "canonicalUsdc": true,
+    "experimental": false
+  },
+  {
+    "name": "optimism",
+    "chainId": 10,
+    "rpcUrlEnv": "OPTIMISM_RPC_URL",
+    "canonicalUsdc": true,
+    "experimental": false
+  },
+  {
+    "name": "polygon",
+    "chainId": 137,
+    "rpcUrlEnv": "POLYGON_RPC_URL",
+    "canonicalUsdc": false,
+    "experimental": false
+  },
+  {
+    "name": "hyperevm",
+    "chainId": 324845,
+    "rpcUrlEnv": "HYPEREVM_RPC_URL",
+    "canonicalUsdc": false,
+    "experimental": true
+  }
+]

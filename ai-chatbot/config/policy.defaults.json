@@ -1,0 +1,11 @@
+{
+  "maxSlippageBps": 50,
+  "deadlineSeconds": 600,
+  "minOutUsd": null,
+  "preferCanonicalUsdc": true,
+  "mevProtect": true,
+  "bridgeRiskTier": "A",
+  "approvals": "permit_only",
+  "dailyNotionalCapUsd": 250000,
+  "killSwitchEnabled": false
+}
