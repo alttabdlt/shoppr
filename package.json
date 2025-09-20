@@ -4,6 +4,7 @@
   "packageManager": "pnpm@9.12.3",
   "scripts": {
     "dev": "pnpm --filter @shoppr/web dev",
+    "dev:all": "bash scripts/start-dev.sh",
     "build": "pnpm --filter @shoppr/web build",
     "lint": "pnpm --filter @shoppr/web lint",
     "test": "pnpm --filter @shoppr/web test",

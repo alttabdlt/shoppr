@@ -1,6 +1,6 @@
 'use client';
 
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, type DataUIPart } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import { useEffect, useState, useRef } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
@@ -20,7 +20,7 @@ import { useSearchParams } from 'next/navigation';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import { useAutoResume } from '@/hooks/use-auto-resume';
 import { ChatSDKError } from '@/lib/errors';
-import type { Attachment, ChatMessage } from '@/lib/types';
+import type { Attachment, ChatMessage, CustomUIDataTypes } from '@/lib/types';
 import type { AppUsage } from '@/lib/usage';
 import { useDataStream } from './data-stream-provider';
 import {
@@ -66,10 +66,15 @@ export function Chat({
   const [showCreditCardAlert, setShowCreditCardAlert] = useState(false);
   const [currentModelId, setCurrentModelId] = useState(initialChatModel);
   const currentModelIdRef = useRef(currentModelId);
+  const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
   }, [currentModelId]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const {
     messages,
@@ -100,8 +105,13 @@ export function Chat({
       },
     }),
     onData: (dataPart) => {
-      setDataStream((ds) => (ds ? [...ds, dataPart] : []));
-      if (dataPart.type === 'data-usage') setUsage(dataPart.data);
+      if (typeof dataPart !== 'object' || dataPart === null) return;
+      if (!('type' in dataPart) || typeof dataPart.type !== 'string') return;
+      if (!dataPart.type.startsWith('data-')) return;
+
+      const typedPart = dataPart as DataUIPart<CustomUIDataTypes>;
+      setDataStream((ds) => [...ds, typedPart]);
+      if (typedPart.type === 'data-usage') setUsage(typedPart.data);
     },
     onFinish: () => {
       mutate(unstable_serialize(getChatHistoryPaginationKey));
@@ -178,7 +188,7 @@ export function Chat({
         />
 
         <div className="sticky bottom-0 z-1 mx-auto flex w-full max-w-4xl gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4">
-          {!isReadonly && (
+          {!isReadonly && mounted && (
             <MultimodalInput
               chatId={id}
               input={input}

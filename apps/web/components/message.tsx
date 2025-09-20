@@ -25,6 +25,17 @@ import type { UseChatHelpers } from '@ai-sdk/react';
 import type { ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
 
+type MessagePart = NonNullable<ChatMessage['parts']>[number];
+
+type FilePart = Extract<MessagePart, { type: 'file' }>;
+
+const isFilePart = (
+  part: MessagePart,
+): part is FilePart => part.type === 'file';
+
+const hasTextContent = (part: MessagePart) =>
+  part.type === 'text' && Boolean(part.text?.trim());
+
 const PurePreviewMessage = ({
   chatId,
   message,
@@ -48,9 +59,8 @@ const PurePreviewMessage = ({
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
-  const attachmentsFromMessage = message.parts.filter(
-    (part) => part.type === 'file',
-  );
+  const messageParts = message.parts ?? [];
+  const attachmentsFromMessage = messageParts.filter(isFilePart);
 
   useDataStream();
 
@@ -76,15 +86,11 @@ const PurePreviewMessage = ({
 
         <div
           className={cn('flex flex-col', {
-            'gap-2 md:gap-4': message.parts?.some(
-              (p) => p.type === 'text' && p.text?.trim(),
-            ),
+            'gap-2 md:gap-4': messageParts.some(hasTextContent),
             'min-h-96': message.role === 'assistant' && requiresScrollPadding,
             'w-full':
               (message.role === 'assistant' &&
-                message.parts?.some(
-                  (p) => p.type === 'text' && p.text?.trim(),
-                )) ||
+                messageParts.some(hasTextContent)) ||
               mode === 'edit',
             'max-w-[calc(100%-2.5rem)] sm:max-w-[min(fit-content,80%)]':
               message.role === 'user' && mode !== 'edit',
@@ -95,7 +101,7 @@ const PurePreviewMessage = ({
               data-testid={`message-attachments`}
               className="flex flex-row justify-end gap-2"
             >
-              {attachmentsFromMessage.map((attachment) => (
+              {attachmentsFromMessage.map((attachment: FilePart) => (
                 <PreviewAttachment
                   key={attachment.url}
                   attachment={{
@@ -108,7 +114,7 @@ const PurePreviewMessage = ({
             </div>
           )}
 
-          {message.parts?.map((part, index) => {
+          {messageParts.map((part: MessagePart, index: number) => {
             const { type } = part;
             const key = `message-${message.id}-part-${index}`;
 

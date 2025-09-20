@@ -10,6 +10,13 @@ import equal from 'fast-deep-equal';
 import { toast } from 'sonner';
 import type { ChatMessage } from '@/lib/types';
 
+type MessagePart = NonNullable<ChatMessage['parts']>[number];
+
+const isTextPart = (
+  part: MessagePart,
+): part is Extract<MessagePart, { type: 'text'; text: string }> =>
+  part.type === 'text';
+
 export function PureMessageActions({
   chatId,
   message,
@@ -28,8 +35,9 @@ export function PureMessageActions({
 
   if (isLoading) return null;
 
-  const textFromParts = message.parts
-    ?.filter((part) => part.type === 'text')
+  const textParts: Array<Extract<MessagePart, { type: 'text'; text: string }>> =
+    message.parts?.filter(isTextPart) ?? [];
+  const textFromParts = textParts
     .map((part) => part.text)
     .join('\n')
     .trim();

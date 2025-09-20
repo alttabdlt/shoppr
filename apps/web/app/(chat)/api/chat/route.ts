@@ -24,16 +24,13 @@ import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
 import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
 import { getWeather } from '@/lib/ai/tools/get-weather';
+import { createCryptoTools, getCryptoToolsForChat } from '@/lib/ai/tools/crypto-tools';
 import { isProductionEnvironment } from '@/lib/constants';
 import { myProvider } from '@/lib/ai/providers';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import { postRequestBodySchema, type PostRequestBody } from './schema';
 import { geolocation } from '@vercel/functions';
-import {
-  createResumableStreamContext,
-  type ResumableStreamContext,
-} from 'resumable-stream';
-import { after } from 'next/server';
+import { getStreamContext } from './stream-context';
 import { ChatSDKError } from '@/lib/errors';
 import type { ChatMessage } from '@/lib/types';
 import type { ChatModel } from '@/lib/ai/models';
@@ -46,7 +43,67 @@ import type { AppUsage } from '@/lib/usage';
 
 export const maxDuration = 60;
 
-let globalStreamContext: ResumableStreamContext | null = null;
+function toChatModelConfigurationError(error: unknown, modelId?: string) {
+  if (error instanceof Error) {
+    console.warn('Chat model invocation failed', {
+      message: error.message,
+      cause: (error as any)?.cause,
+      modelId,
+    });
+  }
+
+  if (error instanceof ChatSDKError) {
+    return error;
+  }
+
+  const baseHint =
+    'We could not reach OpenRouter. Confirm that OPENROUTER_BASE_URL points to the /api/v1 endpoint, your API key has access to the selected model, and outbound network access is available.';
+  const modelHint = modelId ? ` Model: "${modelId}".` : '';
+
+  const message =
+    error instanceof Error && typeof error.message === 'string'
+      ? error.message
+      : '';
+  const cause =
+    error && typeof error === 'object' && 'cause' in error
+      ? (error as any).cause
+      : null;
+
+  if (
+    error instanceof TypeError &&
+    message.includes('fetch failed')
+  ) {
+    return new ChatSDKError('offline:chat', `${baseHint}${modelHint}`);
+  }
+
+  if (
+    cause &&
+    typeof cause === 'object' &&
+    'code' in cause &&
+    typeof (cause as any).code === 'string' &&
+    ['ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT'].includes((cause as any).code)
+  ) {
+    return new ChatSDKError('offline:chat', `${baseHint}${modelHint}`);
+  }
+
+  if (
+    error instanceof SyntaxError &&
+    typeof error.message === 'string' &&
+    error.message.includes("Unexpected token '<")
+  ) {
+    return new ChatSDKError('bad_request:chat', `${baseHint}${modelHint}`);
+  }
+
+  if (
+    error instanceof Error &&
+    typeof error.message === 'string' &&
+    /model not found/i.test(error.message)
+  ) {
+    return new ChatSDKError('bad_request:chat', `${error.message}.${modelHint}`);
+  }
+
+  return null;
+}
 
 const getTokenlensCatalog = cache(
   async (): Promise<ModelCatalog | undefined> => {
@@ -63,26 +120,6 @@ const getTokenlensCatalog = cache(
   ['tokenlens-catalog'],
   { revalidate: 24 * 60 * 60 }, // 24 hours
 );
-
-export function getStreamContext() {
-  if (!globalStreamContext) {
-    try {
-      globalStreamContext = createResumableStreamContext({
-        waitUntil: after,
-      });
-    } catch (error: any) {
-      if (error.message.includes('REDIS_URL')) {
-        console.log(
-          ' > Resumable streams are disabled due to missing REDIS_URL',
-        );
-      } else {
-        console.error(error);
-      }
-    }
-  }
-
-  return globalStreamContext;
-}
 
 export async function POST(request: Request) {
   let requestBody: PostRequestBody;
@@ -173,63 +210,103 @@ export async function POST(request: Request) {
 
     let finalMergedUsage: AppUsage | undefined;
 
+    const chatLanguageModel = myProvider.languageModel(selectedChatModel);
+
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
-        const result = streamText({
-          model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
-          messages: convertToModelMessages(uiMessages),
-          stopWhen: stepCountIs(5),
-          experimental_activeTools:
-            selectedChatModel === 'chat-model-reasoning'
-              ? []
-              : [
-                  'getWeather',
-                  'createDocument',
-                  'updateDocument',
-                  'requestSuggestions',
-                ],
-          experimental_transform: smoothStream({ chunking: 'word' }),
-          tools: {
-            getWeather,
-            createDocument: createDocument({ session, dataStream }),
-            updateDocument: updateDocument({ session, dataStream }),
-            requestSuggestions: requestSuggestions({
-              session,
-              dataStream,
-            }),
-          },
-          experimental_telemetry: {
-            isEnabled: isProductionEnvironment,
-            functionId: 'stream-text',
-          },
-          onFinish: async ({ usage }) => {
-            try {
-              const providers = await getTokenlensCatalog();
-              const modelId =
-                myProvider.languageModel(selectedChatModel).modelId;
-              if (!modelId) {
-                finalMergedUsage = usage;
-                dataStream.write({ type: 'data-usage', data: finalMergedUsage });
-                return;
-              }
+        let result;
 
-              if (!providers) {
-                finalMergedUsage = usage;
-                dataStream.write({ type: 'data-usage', data: finalMergedUsage });
-                return;
-              }
+        try {
+          const cryptoTools = createCryptoTools({ session, dataStream });
+          const cryptoToolNames = getCryptoToolsForChat();
 
-              const summary = getUsage({ modelId, usage, providers });
-              finalMergedUsage = { ...usage, ...summary, modelId } as AppUsage;
-              dataStream.write({ type: 'data-usage', data: finalMergedUsage });
-            } catch (err) {
-              console.warn('TokenLens enrichment failed', err);
-              finalMergedUsage = usage;
-              dataStream.write({ type: 'data-usage', data: finalMergedUsage });
-            }
-          },
-        });
+          result = streamText({
+            model: chatLanguageModel,
+            system: systemPrompt({ selectedChatModel, requestHints }),
+            messages: convertToModelMessages(uiMessages),
+            stopWhen: stepCountIs(5),
+            experimental_activeTools:
+              selectedChatModel === 'chat-model-reasoning'
+                ? []
+                : ([
+                    'getWeather',
+                    'createDocument',
+                    'updateDocument',
+                    'requestSuggestions',
+                    ...cryptoToolNames,
+                  ] as any),
+            experimental_transform: smoothStream({ chunking: 'word' }),
+            tools: {
+              getWeather,
+              createDocument: createDocument({ session, dataStream }),
+              updateDocument: updateDocument({ session, dataStream }),
+              requestSuggestions: requestSuggestions({
+                session,
+                dataStream,
+              }),
+              ...cryptoTools,
+            },
+            experimental_telemetry: {
+              isEnabled: isProductionEnvironment,
+              functionId: 'stream-text',
+            },
+            onError: ({ error }) => {
+              const converted = toChatModelConfigurationError(
+                error,
+                chatLanguageModel.modelId,
+              );
+
+              if (converted) {
+                throw converted;
+              }
+            },
+            onFinish: async ({ usage }) => {
+              try {
+                const providers = await getTokenlensCatalog();
+                const modelId = chatLanguageModel.modelId;
+                if (!modelId) {
+                  finalMergedUsage = usage;
+                  dataStream.write({
+                    type: 'data-usage',
+                    data: finalMergedUsage,
+                  });
+                  return;
+                }
+
+                if (!providers) {
+                  finalMergedUsage = usage;
+                  dataStream.write({
+                    type: 'data-usage',
+                    data: finalMergedUsage,
+                  });
+                  return;
+                }
+
+                const summary = getUsage({ modelId, usage, providers });
+                finalMergedUsage = { ...usage, ...summary, modelId } as AppUsage;
+                dataStream.write({ type: 'data-usage', data: finalMergedUsage });
+              } catch (err) {
+                console.warn('TokenLens enrichment failed', err);
+                finalMergedUsage = usage;
+                dataStream.write({
+                  type: 'data-usage',
+                  data: finalMergedUsage,
+                });
+              }
+            },
+          });
+        } catch (error) {
+          const converted = toChatModelConfigurationError(
+            error,
+            chatLanguageModel.modelId,
+          );
+
+          if (converted) {
+            throw converted;
+          }
+
+          throw error;
+        }
 
         result.consumeStream();
 
@@ -268,7 +345,7 @@ export async function POST(request: Request) {
       },
     });
 
-    const streamContext = getStreamContext();
+    const streamContext = await getStreamContext();
 
     if (streamContext) {
       return new Response(

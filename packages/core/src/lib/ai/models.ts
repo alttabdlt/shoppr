@@ -9,13 +9,12 @@ export interface ChatModel {
 export const chatModels: Array<ChatModel> = [
   {
     id: 'chat-model',
-    name: 'Grok Vision',
-    description: 'Advanced multimodal model with vision and text capabilities',
+    name: 'Qwen 32B',
+    description: 'Qwen3 32B via OpenRouter (tools + structured outputs)',
   },
   {
     id: 'chat-model-reasoning',
-    name: 'Grok Reasoning',
-    description:
-      'Uses advanced chain-of-thought reasoning for complex problems',
+    name: 'Qwen 30B A3B (Reasoning)',
+    description: 'Qwen3 30B A3B instruct variant for reasoning-style prompts',
   },
 ];
