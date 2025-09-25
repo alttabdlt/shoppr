@@ -4,8 +4,9 @@
   "packageManager": "pnpm@9.12.3",
   "scripts": {
     "dev": "pnpm --filter @shoppr/web dev",
-    "dev:all": "bash scripts/start-dev.sh",
+    "dev:all": "bash backend/scripts/start-dev.sh",
     "build": "pnpm --filter @shoppr/web build",
+    "build:servers": "pnpm -r --filter '@shoppr/mcp-*' build",
     "lint": "pnpm --filter @shoppr/web lint",
     "test": "pnpm --filter @shoppr/web test",
     "typecheck": "pnpm --filter @shoppr/web typecheck"

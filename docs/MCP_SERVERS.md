@@ -2,6 +2,8 @@
 
 This document outlines how to integrate Model Context Protocol (MCP) servers with Shoppr's tool calling system to extend crypto dapp functionality.
 
+Note on repo layout: MCP servers are isolated under `backend/servers/*` as independent workspace packages (e.g., `backend/servers/test-mcp` → `@shoppr/mcp-test-mcp`). Core discovers servers via an explicit `module` in config, by the naming pattern `@shoppr/mcp-<name>`, or via an `MCP_SERVERS_DIR` path (e.g., `backend/servers`).
+
 ## Overview
 
 Shoppr's tool calling system is designed with MCP-style architecture, allowing seamless integration of external crypto protocol SDKs as MCP servers. This enables the AI to interact with various DeFi protocols, NFT platforms, and blockchain services through standardized interfaces.
@@ -281,7 +283,8 @@ export function registerMCPServer(server: MCPServer) {
 ```bash
 # MCP Server Configuration
 MCP_SERVERS_ENABLED=true
-MCP_SERVERS_DIR=./mcp-servers
+# Optional: point to the servers directory (for local dev)
+MCP_SERVERS_DIR=./backend/servers
 
 # Protocol-specific configuration
 AAVE_API_KEY=your_aave_api_key
@@ -304,6 +307,8 @@ export const MCPServerConfig = {
     {
       name: 'aave-protocol',
       enabled: true,
+      // Option A: explicit module specifier
+      // module: '@shoppr/mcp-aave-protocol',
       config: {
         apiKey: process.env.AAVE_API_KEY,
         chains: [1, 137, 42161], // Ethereum, Polygon, Arbitrum
@@ -312,6 +317,7 @@ export const MCPServerConfig = {
     {
       name: 'uniswap-v3',
       enabled: true,
+      // Option B: rely on naming convention @shoppr/mcp-uniswap-v3
       config: {
         subgraphUrl: 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3',
         chains: [1, 10, 42161, 8453], // Ethereum, Optimism, Arbitrum, Base
@@ -552,8 +558,8 @@ describe('MCP Server Integration', () => {
 
 To add a new MCP server:
 
-1. Create server implementation in `packages/core/src/lib/mcp-servers/`
-2. Add configuration in `packages/core/src/config/mcp-servers.ts`
+1. Create a new workspace package under `backend/servers/<name>` exporting `createServer()`
+2. Add configuration in `backend/core/src/config/mcp-servers.ts`
 3. Write comprehensive tests
 4. Update this documentation
 5. Submit pull request with examples

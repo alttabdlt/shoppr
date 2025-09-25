@@ -1,0 +1,2 @@
+declare module '@shoppr/ui/*';
+

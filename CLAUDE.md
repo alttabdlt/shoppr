@@ -8,8 +8,8 @@ Shoppr is a cross-chain execution assistant that converts natural language instr
 
 ## Architecture
 
-- **apps/web**: Next.js frontend with chat interface, API routes, and wallet connectivity
-- **packages/core**: Shared configuration, database schema, and service logic
+- **frontend/web**: Next.js frontend with chat interface, API routes, and wallet connectivity
+- **backend/core**: Shared configuration, database schema, and service logic
 - **docs/**: Architecture documentation and agent specifications
 
 The system implements an agent-based architecture with specialized services for intent parsing, quote orchestration, risk assessment, routing decisions, execution, and monitoring.
@@ -32,7 +32,7 @@ pnpm lint         # Lint web app (Biome)
 pnpm test         # Run tests (Playwright)
 pnpm typecheck    # TypeScript checking
 
-# Database commands (run from apps/web/)
+# Database commands (run from frontend/web/)
 pnpm db:generate  # Generate Drizzle schema
 pnpm db:migrate   # Run migrations
 pnpm db:studio    # Open Drizzle Studio
@@ -53,15 +53,15 @@ pnpm db:pull      # Pull schema from DB
 
 ## Key File Locations
 
-- **Configuration**: `packages/core/src/config/` (chains, assets, risk scoring, policy)
-- **Database Schema**: `packages/core/src/lib/db/schema.ts`
-- **API Routes**: `apps/web/app/(routes)/api/` (intent, quotes, execute, receipts, status)
-- **Chat Routes**: `apps/web/app/(chat)/api/` (chat, documents, files, suggestions)
-- **Core Services**: `packages/core/src/lib/` (intent, quotes, risk, router, execution, etc.)
+- **Configuration**: `backend/core/src/config/` (chains, assets, risk scoring, policy)
+- **Database Schema**: `backend/core/src/lib/db/schema.ts`
+- **API Routes**: `frontend/web/app/(routes)/api/` (intent, quotes, execute, receipts, status)
+- **Chat Routes**: `frontend/web/app/(chat)/api/` (chat, documents, files, suggestions)
+- **Core Services**: `backend/core/src/lib/` (intent, quotes, risk, router, execution, etc.)
 
 ## Environment Setup
 
-1. Copy `apps/web/.env.example` to `apps/web/.env.local`
+1. Copy `.env.example` at the repo root to `.env.local`.
 2. Configure required environment variables:
    - `AUTH_SECRET`: Random 32-byte secret
    - `OPENROUTER_API_KEY`: OpenRouter API key (get from https://openrouter.ai/keys)
@@ -100,8 +100,8 @@ Shoppr implements a deterministic routing system:
 ## Testing
 
 - E2E tests use Playwright with `PLAYWRIGHT=True` environment variable
-- Tests are located in `apps/web/tests/e2e/`
-- Run tests with `pnpm test` from root or `apps/web/`
+- Tests are located in `frontend/web/tests/e2e/`
+- Run tests with `pnpm test` from root or `frontend/web/`
 
 ## Important Notes
 

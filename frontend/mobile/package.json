@@ -1,0 +1,11 @@
+{
+  "name": "@shoppr/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Mobile app (placeholder)",
+  "scripts": {
+    "dev": "echo 'mobile app not yet implemented'",
+    "build": "echo 'mobile app not yet implemented'"
+  }
+}
+
